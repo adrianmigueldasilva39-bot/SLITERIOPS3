@@ -3,90 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Slither Lite 60FPS</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:Arial}canvas{display:block;position:fixed;inset:0}#hud{position:fixed;inset:0;pointer-events:none;z-index:10}#score{position:absolute;top:10px;left:10px;color:#fff;font-weight:900;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:20px}#leader{position:absolute;top:10px;right:10px;width:150px;background:rgba(0,0,0,.5);border-radius:10px;padding:8px;color:#fff;font-size:12px}#leader div{padding:2px 0;white-space:nowrap;overflow:hidden}#boostBtn{position:absolute;right:16px;bottom:20px;width:72px;height:72px;border-radius:50%;background:#e91e63;border:3px solid #fff;color:#fff;font-weight:900;pointer-events:auto;display:flex;align-items:center;justify-content:center}#start{position:fixed;inset:0;background:#0a0a12;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:20px}#start h1{font-size:42px}#start h1 span{color:#00e676}#skins{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;justify-content:center}.skin{width:48px;height:48px;border-radius:50%;border:3px solid transparent;cursor:pointer}.skin.sel{border-color:#fff;transform:scale(1.1)}input{padding:12px;border-radius:30px;border:2px solid #333;background:#111;color:#fff;text-align:center;font-size:16px;width:280px}#playBtn{margin-top:14px;padding:15px;width:280px;border:none;border-radius:30px;background:#00e676;font-weight:900;font-size:18px}#dead{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff}#dead button{padding:14px 28px;border:none;border-radius:30px;background:#00e676;font-weight:900;margin-top:16px}</style>
+<title>Slither 60FPS</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:Arial}canvas{display:block;position:fixed;inset:0}#score{position:fixed;top:8px;left:8px;color:#fff;font-weight:900;background:rgba(0,0,0,.6);padding:5px 10px;border-radius:20px;z-index:10;font-size:14px}#top{position:fixed;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;padding:6px 8px;border-radius:8px;z-index:10;font-size:11px;min-width:110px}#boost{position:fixed;right:14px;bottom:18px;width:68px;height:68px;border-radius:50%;background:#e91e63;border:3px solid #fff;color:#fff;font-weight:900;z-index:10;display:flex;align-items:center;justify-content:center}#menu{position:fixed;inset:0;background:#0a0a12;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:12px}#menu h1{font-size:38px}#menu h1 b{color:#00e676}#menu input{padding:11px;border-radius:30px;border:1px solid #333;background:#111;color:#fff;text-align:center;width:250px}#menu button{padding:14px;width:250px;border:none;border-radius:30px;background:#00e676;font-weight:900;font-size:17px}#sk{display:flex;gap:8px}.c{width:44px;height:44px;border-radius:50%;border:3px solid transparent}.c.on{border-color:#fff}#dead{position:fixed;inset:0;background:#000;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:12px}#dead button{padding:13px 26px;border:none;border-radius:30px;background:#00e676;font-weight:900}</style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<div id="hud"><div id="score">0</div><div id="leader"><b>TOP 5</b><div id="lb"></div></div><div id="boostBtn">BOOST</div></div>
-<div id="start"><h1>slither<span>.io</span></h1><p>VERSÃO LEVE - 60 FPS</p><input id="nameInput" value="Player" maxlength="12"><div id="skins"></div><button id="playBtn">▶ JOGAR</button><p style="opacity:.5;font-size:11px;margin-top:10px">Arrasta dedo = gira | Botão BOOST = acelera</p></div>
-<div id="dead"><h2>💀 MORREU</h2><p id="deadInfo"></p><button onclick="location.reload()">JOGAR DE NOVO</button></div>
+<canvas id="c"></canvas>
+<div id="score">0</div><div id="top"></div><div id="boost">BOOST</div>
+<div id="menu"><h1>slither<b>.io</b></h1><input id="nm" value="Player" maxlength="10"><div id="sk"></div><button id="play">▶ JOGAR</button><span style="opacity:.5;font-size:11px">LEVE • 60 FPS • Arrasta pra girar</span></div>
+<div id="dead"><h2>💀 MORREU</h2><p id="di"></p><button onclick="location.reload()">DE NOVO</button></div>
 <script>
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
-let W=innerWidth,H=innerHeight;canvas.width=W;canvas.height=H;
-addEventListener('resize',()=>{W=innerWidth;H=innerHeight;canvas.width=W;canvas.height=H;});
-const WORLD_R=1800;
-const skins=[['#00e676','#00c853'],['#ff4081','#f50057'],['#2979ff','#2962ff'],['#ffea00','#ffd600'],['#aa00ff','#7b1fa2'],['#ff1744','#d50000']];
-let sel=0;const skinsEl=document.getElementById('skins');
-skins.forEach((c,i)=>{let d=document.createElement('div');d.className='skin'+(i===0?' sel':'');d.style.background=c[0];d.onclick=()=>{sel=i;document.querySelectorAll('.skin').forEach((e,j)=>e.classList.toggle('sel',j===i))};skinsEl.appendChild(d);});
-const hex=document.createElement('canvas');hex.width=128;hex.height=128;let hc=hex.getContext('2d');hc.fillStyle='#12121e';hc.fillRect(0,0,128,128);hc.strokeStyle='rgba(255,255,255,.06)';for(let y=0;y<3;y++)for(let x=0;x<3;x++){hc.beginPath();for(let i=0;i<6;i++){let a=Math.PI/3*i;let px=x*48+(y%2?24:0)+Math.cos(a)*18,py=y*42+Math.sin(a)*18;if(i==0)hc.moveTo(px,py);else hc.lineTo(px,py);}hc.closePath();hc.stroke();}
-let player=null,snakes=[],foods=[],started=false,cam={x:0,y:0},ang=0,boost=false,last=0;
-const names=['Viper','Kobra','Naja','Mamba','Rex','Turbo','Ghost','Zeus','Luna','Flash'];
-function rand(a,b){return a+Math.random()*(b-a)}
-function mk(name,me,ci,x,y){let segs=[];let a=rand(0,6.28);for(let i=0;i<10;i++)segs.push({x:x-Math.cos(a)*i*10,y:y-Math.sin(a)*i*10});return{name,me,colors:skins[ci],segs,angle:a,tAngle:a,score:0,alive:true,boost:false,len:10,rad:11,ai:0}}
-function spawnFood(n){for(let i=0;i<n;i++){let a=rand(0,6.28),r=Math.sqrt(Math.random())*(WORLD_R-100);foods.push({x:Math.cos(a)*r,y:Math.sin(a)*r,r:4+Math.random()*2,c:['#ff5252','#ffea00','#00e676','#2979ff','#ff4081'][i%5],v:1})}}
-function start(){let n=document.getElementById('nameInput').value||'Player';snakes=[];foods=[];spawnFood(260);player=mk(n,true,sel,0,0);snakes.push(player);for(let i=0;i<8;i++){let a=rand(0,6.28),r=rand(300,WORLD_R-400);let s=mk(names[i],false,i%6,Math.cos(a)*r,Math.sin(a)*r);s.len=12+Math.random()*15;while(s.segs.length<s.len){let l=s.segs[s.segs.length-1];s.segs.push({x:l.x,y:l.y})}s.score=s.len*5;snakes.push(s)}cam.x=0;cam.y=0;started=true;document.getElementById('start').style.display='none'}
-document.getElementById('playBtn').onclick=start;
-addEventListener('mousemove',e=>{let dx=e.clientX-W/2,dy=e.clientY-H/2;if(Math.hypot(dx,dy)>10)ang=Math.atan2(dy,dx)});
-addEventListener('mousedown',()=>{if(started)boost=true});addEventListener('mouseup',()=>boost=false);
-addEventListener('keydown',e=>{if(e.code==='Space')boost=true});addEventListener('keyup',e=>{if(e.code==='Space')boost=false});
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W=innerWidth,H=innerHeight;cv.width=W;cv.height=H;
+addEventListener('resize',()=>{W=innerWidth;H=innerHeight;cv.width=W;cv.height=H});
+const R=1500;
+const cols=[['#00e676','#00c853'],['#ff4081','#f50057'],['#2979ff','#2962ff'],['#ffea00','#ffd600'],['#aa00ff','#7b1fa2']];
+let sel=0;const skEl=document.getElementById('sk');
+cols.forEach((c,i)=>{let d=document.createElement('div');d.className='c'+(i==0?' on':'');d.style.background=c[0];d.onclick=()=>{sel=i;document.querySelectorAll('.c').forEach((e,j)=>e.classList.toggle('on',j==i))};skEl.appendChild(d)});
+let snakes=[],foods=[],player=null,started=false,camX=0,camY=0,ang=0,boost=false,last=0,frame=0;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function mk(n,me,ci,x,y){let a=rnd(0,6.28),s=[];for(let i=0;i<9;i++)s.push({x:x-Math.cos(a)*i*10,y:y-Math.sin(a)*i*10});return{name:n,me,cols:cols[ci],s,ang:a,tang:a,score:0,alive:true,len:9,rad:10,ai:0}}
+function addFood(n){for(let i=0;i<n;i++){let a=rnd(0,6.28),r=Math.sqrt(Math.random())*(R-80);foods.push({x:Math.cos(a)*r,y:Math.sin(a)*r,c:['#ff5252','#ffea00','#00e676','#2979ff','#ff4081'][i%5]})}}
+function start(){snakes=[];foods=[];addFood(140);player=mk(document.getElementById('nm').value||'Player',true,sel,0,0);snakes.push(player);for(let i=0;i<6;i++){let a=rnd(0,6.28),rr=rnd(300,R-400);let s=mk(['Viper','Kobra','Mamba','Rex','Ghost','Zeus'][i],false,i%5,Math.cos(a)*rr,Math.sin(a)*rr);s.len=12;while(s.s.length<12){let l=s.s[s.s.length-1];s.s.push({x:l.x,y:l.y})}s.score=60;snakes.push(s)}started=true;document.getElementById('menu').style.display='none'}
+document.getElementById('play').onclick=start;
+addEventListener('mousemove',e=>{let dx=e.clientX-W/2,dy=e.clientY-H/2;if(dx*dx+dy*dy>100)ang=Math.atan2(dy,dx)});
+addEventListener('mousedown',()=>boost=true);addEventListener('mouseup',()=>boost=false);
+addEventListener('keydown',e=>{if(e.code=='Space')boost=true});addEventListener('keyup',e=>{if(e.code=='Space')boost=false});
 let tid=null;
-addEventListener('touchstart',e=>{let t=e.changedTouches[0];tid=t.identifier;let dx=t.clientX-W/2,dy=t.clientY-H/2;if(Math.hypot(dx,dy)>8)ang=Math.atan2(dy,dx)},{passive:true});
-addEventListener('touchmove',e=>{for(let t of e.changedTouches)if(t.identifier===tid){let dx=t.clientX-W/2,dy=t.clientY-H/2;if(Math.hypot(dx,dy)>8)ang=Math.atan2(dy,dx)}},{passive:true});
-const bb=document.getElementById('boostBtn');
-bb.addEventListener('touchstart',e=>{e.stopPropagation();boost=true},{passive:true});bb.addEventListener('touchend',()=>boost=false);
-function kill(s,msg){if(!s.alive)return;s.alive=false;let h=s.segs[0];for(let i=0;i<s.segs.length;i+=3){foods.push({x:s.segs[i].x+rand(-10,10),y:s.segs[i].y+rand(-10,10),r:5,c:s.colors[0],v:2})}if(s.me){document.getElementById('deadInfo').textContent=`${s.name} • ${s.score} pts • ${msg}`;document.getElementById('dead').style.display='flex';started=false}}
+addEventListener('touchstart',e=>{let t=e.changedTouches[0];tid=t.identifier;let dx=t.clientX-W/2,dy=t.clientY-H/2;if(dx*dx+dy*dy>64)ang=Math.atan2(dy,dx)},{passive:true});
+addEventListener('touchmove',e=>{for(let t of e.changedTouches)if(t.identifier==tid){let dx=t.clientX-W/2,dy=t.clientY-H/2;if(dx*dx+dy*dy>64)ang=Math.atan2(dy,dx)}},{passive:true});
+let b=document.getElementById('boost');b.addEventListener('touchstart',e=>{e.stopPropagation();boost=true},{passive:true});b.addEventListener('touchend',()=>boost=false);
+function kill(s,msg){if(!s.alive)return;s.alive=false;let h=s.s[0];for(let i=0;i<s.s.length;i+=4)foods.push({x:s.s[i].x+rnd(-8,8),y:s.s[i].y+rnd(-8,8),c:s.cols[0]});if(s.me){document.getElementById('di').textContent=s.score+' pts';document.getElementById('dead').style.display='flex';started=false}}
 function update(dt){
 if(!started)return;
 let gp=navigator.getGamepads&&navigator.getGamepads()[0];
-if(gp){let ax=gp.axes[0]||0,ay=gp.axes[1]||0;if(Math.hypot(ax,ay)>0.25)ang=Math.atan2(ay,ax);if(gp.buttons[0]&&gp.buttons[0].pressed)boost=true;else if(gp.buttons[0])boost=false;}
+if(gp){let ax=gp.axes[0]||0,ay=gp.axes[1]||0;if(ax*ax+ay*ay>0.06)ang=Math.atan2(ay,ax);boost=gp.buttons[0]&&gp.buttons[0].pressed;}
 for(let s of snakes){
 if(!s.alive)continue;
-if(s.me){let d=((ang-s.angle+Math.PI*3)%(Math.PI*2))-Math.PI;s.angle+=d*Math.min(1,dt*7);s.boost=boost}
+if(s.me){let d=((ang-s.ang+9.42)%6.28)-3.14;s.ang+=d*Math.min(1,dt*7);s.boost=boost}
 else{
 s.ai-=dt;
-if(s.ai<=0){s.ai=0.25;let h=s.segs[0];let best=null,bd=1e9;for(let i=0;i<foods.length;i+=2){let f=foods[i];let dx=f.x-h.x,dy=f.y-h.y;let dd=dx*dx+dy*dy;if(dd<90000&&dd<bd){bd=dd;best=f}}if(best)s.tAngle=Math.atan2(best.y-h.y,best.x-h.x);else s.tAngle+=rand(-1,1);
-let dc=Math.hypot(h.x,h.y);if(dc>WORLD_R-300)s.tAngle=Math.atan2(-h.y,-h.x);
-for(let o of snakes){if(o===s)continue;for(let i=4;i<o.segs.length;i+=6){let seg=o.segs[i];let dx=h.x-seg.x,dy=h.y-seg.y;if(dx*dx+dy*dy<3600){s.tAngle=Math.atan2(dy,dx);break}}}
-s.boost=false;
+if(s.ai<=0){s.ai=0.35;let h=s.s[0],best=null,bd=1e9;for(let i=0;i<foods.length;i+=3){let f=foods[i],dx=f.x-h.x,dy=f.y-h.y,dd=dx*dx+dy*dy;if(dd<62500&&dd<bd){bd=dd;best=f}}if(best)s.tang=Math.atan2(best.y-h.y,best.x-h.x);else s.tang+=rnd(-1,1);let dc=Math.hypot(h.x,h.y);if(dc>R-250)s.tang=Math.atan2(-h.y,-h.x);}
+let d=((s.tang-s.ang+9.42)%6.28)-3.14;s.ang+=d*Math.min(1,dt*4);
 }
-let d=((s.tAngle-s.angle+Math.PI*3)%(Math.PI*2))-Math.PI;s.angle+=d*Math.min(1,dt*5);
+let spd=(s.boost&&s.len>12)?4.1:2.15;
+let h=s.s[0];s.s.unshift({x:h.x+Math.cos(s.ang)*spd*60*dt,y:h.y+Math.sin(s.ang)*spd*60*dt});if(s.s.length>s.len)s.s.pop();
+for(let i=1;i<s.s.length;i++){let p=s.s[i-1],c=s.s[i],dx=c.x-p.x,dy=c.y-p.y,d=Math.sqrt(dx*dx+dy*dy)||1;if(d>9){c.x=p.x+dx/d*9;c.y=p.y+dy/d*9}}
+for(let i=foods.length-1;i>=0;i--){let f=foods[i],dx=h.x-f.x,dy=h.y-f.y;if(dx*dx+dy*dy<324){foods.splice(i,1);s.score+=1;s.len+=0.3;s.rad=Math.min(15,9+s.len*0.08)}}
+if(h.x*h.x+h.y*h.y>(R-10)*(R-10)){kill(s);continue}
+for(let o of snakes){if(!o.alive)continue;let st=o===s?8:0;for(let i=st;i<o.s.length;i+=3){let seg=o.s[i],dx=h.x-seg.x,dy=h.y-seg.y;if(dx*dx+dy*dy<90){kill(s);break}}if(!s.alive)break}
 }
-let spd=s.boost&&s.len>12?4.2:2.2;
-let h=s.segs[0];let nx=h.x+Math.cos(s.angle)*spd*60*dt,ny=h.y+Math.sin(s.angle)*spd*60*dt;
-s.segs.unshift({x:nx,y:ny});while(s.segs.length>s.len)s.segs.pop();
-for(let i=1;i<s.segs.length;i++){let p=s.segs[i-1],c=s.segs[i];let dx=c.x-p.x,dy=c.y-p.y;let d=Math.sqrt(dx*dx+dy*dy)||1;if(d>9){c.x=p.x+dx/d*9;c.y=p.y+dy/d*9}}
-for(let i=foods.length-1;i>=0;i--){let f=foods[i];let dx=h.x-f.x,dy=h.y-f.y;if(dx*dx+dy*dy<(s.rad+f.r+2)*(s.rad+f.r+2)){foods.splice(i,1);s.score+=f.v;s.len+=0.3;s.rad=Math.min(18,10+s.len*0.06)}}
-if(Math.hypot(h.x,h.y)>WORLD_R-10){kill(s,'borda');continue}
-for(let o of snakes){if(!o.alive)continue;let startI=o===s?8:0;for(let i=startI;i<o.segs.length;i+=2){let seg=o.segs[i];let dx=h.x-seg.x,dy=h.y-seg.y;if(dx*dx+dy*dy<s.rad*s.rad*0.5){if(o!==s)o.score+=20;kill(s,'morreu');break}}if(!s.alive)break}
-}
-if(player&&player.alive){cam.x+=(player.segs[0].x-cam.x)*Math.min(1,dt*5);cam.y+=(player.segs[0].y-cam.y)*Math.min(1,dt*5)}
-if(foods.length<220)spawnFood(30);
-if(snakes.filter(s=>!s.me&&s.alive).length<8){let a=rand(0,6.28),r=rand(400,WORLD_R-500);snakes.push(mk('Bot'+Math.floor(rand(0,99)),false,Math.floor(rand(0,6)),Math.cos(a)*r,Math.sin(a)*r))}
-snakes=snakes.filter(s=>s.alive||s.me);
+if(player&&player.alive){camX+=(player.s[0].x-camX)*Math.min(1,dt*5);camY+=(player.s[0].y-camY)*Math.min(1,dt*5)}
+if(foods.length<120)addFood(25);
+if(snakes.filter(s=>!s.me&&s.alive).length<6){let a=rnd(0,6.28),r=rnd(300,R-400);snakes.push(mk('Bot',false,Math.floor(rnd(0,5)),Math.cos(a)*r,Math.sin(a)*r))}
 }
 function draw(){
 ctx.fillStyle='#12121e';ctx.fillRect(0,0,W,H);
 if(!started)return;
-let cx=cam.x-W/2,cy=cam.y-H/2;
-let sx=Math.floor(cx/128)*128,sy=Math.floor(cy/128)*128;
-for(let x=sx;x<cx+W+128;x+=128)for(let y=sy;y<cy+H+128;y+=128)ctx.drawImage(hex,x-cx,y-cy);
+let cx=camX-W/2,cy=camY-H/2;
+ctx.fillStyle='rgba(255,255,255,.05)';
+let gx=Math.floor(cx/48)*48,gy=Math.floor(cy/48)*48;
+for(let x=gx;x<cx+W+48;x+=48)for(let y=gy;y<cy+H+48;y+=48)ctx.fillRect(x-cx,y-cy,1,1);
 ctx.save();ctx.translate(-cx,-cy);
-ctx.beginPath();ctx.arc(0,0,WORLD_R,0,6.29);ctx.strokeStyle='#ff1744';ctx.lineWidth=14;ctx.stroke();
-for(let i=0;i<foods.length;i++){let f=foods[i];ctx.fillStyle=f.c;ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,6.29);ctx.fill()}
-let sorted=snakes.slice().sort((a,b)=>a.len-b.len);
-for(let s of sorted){
+ctx.strokeStyle='#ff1744';ctx.lineWidth=12;ctx.beginPath();ctx.arc(0,0,R,0,6.29);ctx.stroke();
+for(let i=0;i<foods.length;i++){let f=foods[i];ctx.fillStyle=f.c;ctx.beginPath();ctx.arc(f.x,f.y,4,0,6.29);ctx.fill()}
+for(let s of snakes){
 if(!s.alive)continue;
-for(let i=s.segs.length-1;i>=0;i--){let seg=s.segs[i];let rad=s.rad*(1-(i/s.segs.length)*0.45);ctx.fillStyle=s.colors[Math.floor(i/4)%2];ctx.beginPath();ctx.arc(seg.x,seg.y,rad,0,6.29);ctx.fill()}
-let h=s.segs[0],ex=Math.cos(s.angle),ey=Math.sin(s.angle),px=-ey,py=ex;
-for(let sd of[-1,1]){let exx=h.x+ex*6+px*sd*7,eyy=h.y+ey*6+py*sd*7;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(exx,eyy,s.rad*0.42,0,6.29);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(exx+ex*2,eyy+ey*2,s.rad*0.22,0,6.29);ctx.fill()}
+for(let i=s.s.length-1;i>=0;i--){let seg=s.s[i],rad=s.rad*(1-(i/s.s.length)*0.4);ctx.fillStyle=s.cols[i>>2&1];ctx.beginPath();ctx.arc(seg.x,seg.y,rad,0,6.29);ctx.fill()}
+let h=s.s[0],ex=Math.cos(s.ang),ey=Math.sin(s.ang),px=-ey,py=ex;
+for(let sd of[-1,1]){let exx=h.x+ex*5+px*sd*6,eyy=h.y+ey*5+py*sd*6;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(exx,eyy,s.rad*0.38,0,6.29);ctx.fill();ctx.fillStyle='#111';ctx.beginPath();ctx.arc(exx+ex*2,eyy+ey*2,s.rad*0.2,0,6.29);ctx.fill()}
 }
 ctx.restore();
-if(player){document.getElementById('score').textContent=player.score+' pts • '+Math.floor(player.len)}
-let top=snakes.filter(s=>s.alive).sort((a,b)=>b.score-a.score).slice(0,5);
-document.getElementById('lb').innerHTML=top.map((s,i)=>`<div>${i+1}. ${s.name} - ${s.score}</div>`).join('');
+frame++;
+if(frame%6==0&&player){document.getElementById('score').textContent=player.score+' pts • '+Math.floor(player.len);let t=snakes.filter(s=>s.alive).sort((a,b)=>b.score-a.score).slice(0,5);document.getElementById('top').innerHTML='<b>TOP 5</b><br>'+t.map((s,i)=> (i+1)+'. '+s.name+' '+s.score).join('<br>')}
 }
-function loop(ts){let dt=Math.min((ts-last)/1000,0.033);if(!last)dt=0.016;last=ts;update(dt);draw();requestAnimationFrame(loop)}
+function loop(ts){let dt=(ts-last)/1000;if(!last||dt>0.033)dt=0.016;last=ts;update(dt);draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 </script>
 </body>
